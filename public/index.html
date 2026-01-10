@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Library App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Library App</h2>
+    <p>Pilih mode:</p>
+
+    <button onclick="goCustomer()">Customer</button>
+    <button onclick="goAdmin()">Admin</button>
+  </div>
+
+  <script>
+    function goCustomer() {
+      window.location.href = "customer.html";
+    }
+
+    function goAdmin() {
+      window.location.href = "admin.html";
+    }
+  </script>
+
+</body>
+</html>

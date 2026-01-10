@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Library</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+    }
+    h2 { margin-bottom: 10px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      margin-bottom: 30px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #eee;
+    }
+    .overdue {
+      color: red;
+      font-weight: bold;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      width: 400px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Admin Page</h2>
+  <button onclick="goBack()">⬅ Back to Dashboard</button>
+
+  <h3>History Peminjaman</h3>
+  <table id="historyTable">
+    <tr>
+      <th>Nama</th>
+      <th>Buku</th>
+      <th>Tanggal Pinjam</th>
+      <th>Harus Kembali</th>
+      <th>Status</th>
+    </tr>
+  </table>
+
+  <div class="box">
+    <h3>➕ Tambah Buku</h3>
+    <input type="text" id="title" placeholder="Judul Buku">
+    <input type="text" id="author" placeholder="Author">
+    <input type="number" id="total" placeholder="Total Stok">
+    <button onclick="addBook()">Tambah</button>
+  </div>
+
+  <div class="box">
+    <h3>🗑 Hapus Buku</h3>
+    <input type="number" id="deleteId" placeholder="ID Buku">
+    <button onclick="deleteBook()">Hapus</button>
+  </div>
+
+<script>
+function goBack() {
+  window.location.href = "index.html";
+}
+
+async function loadHistory() {
+  const res = await fetch('/loan-history');
+  const data = await res.json();
+
+  const table = document.getElementById('historyTable');
+  table.innerHTML = `
+    <tr>
+      <th>Nama</th>
+      <th>Buku</th>
+      <th>Tanggal Pinjam</th>
+      <th>Harus Kembali</th>
+      <th>Status</th>
+    </tr>
+  `;
+
+  const now = new Date();
+
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+
+    const dueDate = new Date(row.due_date);
+    let statusText = "Dipinjam";
+    let statusClass = "";
+
+    if (row.returned_date) {
+      statusText = "Dikembalikan";
+    } else if (dueDate < now) {
+      statusText = "OVERDUE";
+      statusClass = "overdue";
+    }
+
+    tr.innerHTML = `
+      <td>${row.member_name}</td>
+      <td>${row.book_title}</td>
+      <td>${new Date(row.loan_date).toLocaleDateString()}</td>
+      <td>${dueDate.toLocaleDateString()}</td>
+      <td class="${statusClass}">${statusText}</td>
+    `;
+
+    table.appendChild(tr);
+  });
+}
+
+async function addBook() {
+  const title = document.getElementById('title').value;
+  const author = document.getElementById('author').value;
+  const total = document.getElementById('total').value;
+
+  if (!title || !total) {
+    alert("Judul dan total wajib diisi");
+    return;
+  }
+
+  await fetch('/collections', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title: title,
+      author: author,
+      total_copies: parseInt(total)
+    })
+  });
+
+  alert("Buku berhasil ditambahkan");
+  document.getElementById('title').value = '';
+  document.getElementById('author').value = '';
+  document.getElementById('total').value = '';
+  loadHistory();
+}
+
+async function deleteBook() {
+  const id = document.getElementById('deleteId').value;
+  if (!id) {
+    alert("ID wajib diisi");
+    return;
+  }
+
+  await fetch(`/collections/${id}`, {
+    method: 'DELETE'
+  });
+
+  alert("Buku berhasil dihapus");
+  document.getElementById('deleteId').value = '';
+  loadHistory();
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>

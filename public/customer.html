@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Customer - Library</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      width: 400px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Customer Page</h2>
+  <button onclick="goBack()">⬅ Back to Dashboard</button>
+
+  <div class="box">
+   <h3>Pinjam Buku</h3>
+    <input type="text" id="borrowName" placeholder="Nama">
+
+    <input type="date" id="borrowDate">
+
+    <select id="bookSelect"></select>
+    <button onclick="borrowBook()">Pinjam</button>
+    <div id="borrowMsg"></div>
+  </div>
+
+  <div class="box">
+    <h3>Kembalikan Buku</h3>
+    <input type="text" id="returnName" placeholder="Nama">
+    <button onclick="checkLoans()">Check Pinjaman</button>
+    <div id="loanList"></div>
+  </div>
+
+<script>
+function goBack() {
+  window.location.href = "index.html";
+}
+
+async function loadBooks() {
+  const res = await fetch('/collections');
+  const data = await res.json();
+  const select = document.getElementById('bookSelect');
+  select.innerHTML = '';
+
+  data.forEach(book => {
+    const opt = document.createElement('option');
+    opt.value = book.id;
+    opt.textContent = `${book.title} (stok: ${book.available_copies})`;
+    select.appendChild(opt);
+  });
+}
+
+async function borrowBook() {
+  const name = document.getElementById('borrowName').value;
+  const bookId = document.getElementById('bookSelect').value;
+  const borrowDate = document.getElementById('borrowDate').value;
+
+  if (!name || !bookId || !borrowDate) {
+    alert("Nama, tanggal, dan buku wajib diisi");
+    return;
+  }
+
+  const res = await fetch('/borrow', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      memberName: name,
+      collectionId: parseInt(bookId),
+      loanDate: borrowDate
+    })
+  });
+
+  const data = await res.json();
+  document.getElementById('borrowMsg').innerText = data.message || data.error;
+  loadBooks();
+}
+
+
+async function checkLoans() {
+  const name = document.getElementById('returnName').value;
+  if (!name) {
+    alert("Nama wajib diisi");
+    return;
+  }
+
+  const res = await fetch(`/loans-by-member?name=${name}`);
+  const data = await res.json();
+
+  const div = document.getElementById('loanList');
+  div.innerHTML = '';
+
+  if (data.length === 0) {
+    div.innerText = "Tidak ada pinjaman aktif.";
+    return;
+  }
+
+  data.forEach(loan => {
+    const btn = document.createElement('button');
+    btn.innerText = `Kembalikan: ${loan.book_title}`;
+    btn.onclick = async () => {
+      await fetch('/return', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ loanId: loan.id })
+      });
+      alert("Buku berhasil dikembalikan");
+      div.innerHTML = '';
+      loadBooks();
+    };
+    div.appendChild(btn);
+  });
+}
+
+loadBooks();
+</script>
+
+</body>
+</html>
