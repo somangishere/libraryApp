@@ -27,7 +27,10 @@ class LoanService {
     }
 
     deleteCollection(id, callback) {
-        this.db.query('DELETE FROM collections WHERE id = ?', [id], callback);
+        const sql = `
+            DELETE FROM collections WHERE id = ?
+            `;
+        this.db.query(sql, [id], callback);
     }
 
    
