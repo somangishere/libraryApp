@@ -567,6 +567,126 @@ Manual testing report for **Library Management System (libraryApp)**.
 Cannot delete or update a parent row: 
 a foreign key constraint fails (loans.collection_id references collections.id)
 ```
+## 🗑️ Soft Delete Implementation
+
+To maintain **data integrity** and **transaction history**, this system does **not permanently delete books** from the database.
+Instead, it uses a **soft delete mechanism** by marking data as deleted using a flag.
+
+---
+
+### **STEP 1 — Update Database Schema**
+
+Add a new column to the `collections` table:
+
+```sql
+ALTER TABLE collections ADD COLUMN is_deleted TINYINT(1) DEFAULT 0;
+```
+
+This column acts as a flag:
+
+| Value | Meaning               |
+| ----- | --------------------- |
+| 0     | Active                |
+| 1     | Deleted (Soft Delete) |
+
+---
+
+### **STEP 2 — Update getAllCollections Method**
+
+In `LoanService.js`, replace:
+
+```js
+getAllCollections(callback) {
+    this.db.query('SELECT * FROM collections', callback);
+}
+```
+
+With:
+
+```js
+getAllCollections(callback) {
+    this.db.query('SELECT * FROM collections WHERE is_deleted = 0', callback);
+}
+```
+
+This ensures only active books are shown in the catalog.
+
+---
+
+### **STEP 3 — Add Soft Delete Method**
+
+Add this method to `LoanService.js`:
+
+```js
+softDeleteCollection(id, callback) {
+    this.db.query(
+        'UPDATE collections SET is_deleted = 1 WHERE id = ?',
+        [id],
+        callback
+    );
+}
+```
+
+This method marks the book as deleted without removing it from the database.
+
+---
+
+### **STEP 4 — Update DELETE Route**
+
+In `server.js`, replace:
+
+```js
+app.delete('/collections/:id', (req, res) => {
+    const id = req.params.id;
+
+    loanService.deleteCollectionSafe(id, (err, result) => {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        res.json({ message: 'Buku berhasil dihapus' });
+    });
+});
+```
+
+With:
+
+```js
+app.delete('/collections/:id', (req, res) => {
+    const id = req.params.id;
+
+    loanService.softDeleteCollection(id, (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: 'Failed to delete book' });
+        }
+        res.json({ message: 'Book successfully deleted (soft delete)' });
+    });
+});
+```
+
+---
+
+### **Why Soft Delete?**
+
+* Preserves **transaction history**
+* Prevents **foreign key constraint errors**
+* Allows **future audit and recovery**
+* Common practice in **enterprise systems**
+
+---
+
+### **System Impact**
+
+| Area        | Effect                      |
+| ----------- | --------------------------- |
+| Customer UI | Book is hidden from catalog |
+| Admin UI    | Book appears as deleted     |
+| Database    | Data remains safely stored  |
+
+---
+
+> This approach ensures the system remains **safe, consistent, and professional**.
+
+
 
 **Conclusion:**
 
